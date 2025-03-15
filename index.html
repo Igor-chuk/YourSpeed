@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Speed Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            margin-top: 20px;
+        }
+        #speed {
+            font-size: 48px;
+            color: #333;
+            margin-top: 20px;
+        }
+        #status {
+            font-size: 20px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time Speed Detector</h1>
+    <div id="speed">0 km/h</div>
+    <div id="status">Waiting for movement...</div>
+
+    <script>
+        let lastPosition = null;
+        let lastTime = null;
+
+        function calculateSpeed(position) {
+            const currentTime = new Date().getTime();
+            if (lastPosition && lastTime) {
+                const distance = getDistance(lastPosition, position.coords);
+                const timeDiff = (currentTime - lastTime) / 1000; // Convert to seconds
+                const speed = (distance / timeDiff) * 3.6; // Convert to km/h
+                return speed.toFixed(2);
+            }
+            return 0;
+        }
+
+        function getDistance(pos1, pos2) {
+            const R = 6371e3; // Earth radius in meters
+            const φ1 = (pos1.latitude * Math.PI) / 180;
+            const φ2 = (pos2.latitude * Math.PI) / 180;
+            const Δφ = ((pos2.latitude - pos1.latitude) * Math.PI) / 180;
+            const Δλ = ((pos2.longitude - pos1.longitude) * Math.PI) / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Distance in meters
+        }
+
+        function updateSpeed(position) {
+            const speedElement = document.getElementById('speed');
+            const statusElement = document.getElementById('status');
+
+            const speed = calculateSpeed(position);
+            speedElement.textContent = `${speed} km/h`;
+            statusElement.textContent = 'Moving...';
+
+            lastPosition = position.coords;
+            lastTime = new Date().getTime();
+        }
+
+        function handleLocationError(error) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = `Error: ${error.message}`;
+        }
+
+        function startTracking() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updateSpeed, handleLocationError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 1000,
+                    timeout: 5000
+                });
+            } else {
+                document.getElementById('status').textContent = 'Geolocation is not supported by this browser.';
+            }
+        }
+
+        window.onload = startTracking;
+    </script>
+</body>
+</html>
